@@ -4,6 +4,37 @@ FROM patient.health;
 SELECT *
 FROM patient.demographics;
 
+-- Demographics--
+SELECT race,
+		COUNT(*) as num_of_patients
+FROM patient.demographics
+WHERE race != "?"
+GROUP BY race
+ORDER BY 2 DESC;
+
+SELECT gender,
+		COUNT(*) as num_of_patients
+FROM patient.demographics
+WHERE race != "?"
+GROUP BY gender
+ORDER BY 2 DESC;
+
+-- TOP 10 patients with the most hospital visits--
+SELECT demographics.patient_nbr AS patient_nbr,
+		COUNT(DISTINCT(health.encounter_id)) AS num_of_hospitalizations
+FROM patient.demographics
+JOIN patient.health
+	ON demographics.patient_nbr = health.patient_nbr
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 10;
+
+-- Avg time in hospital by admission type--
+SELECT admission_type_id,
+		ROUND(AVG(time_in_hospital),2) AS avg_time_in_hosp
+FROM health
+GROUP BY 1
+ORDER BY 1;
 
 -- Histogram for time in hospital-- 
 SELECT ROUND(time_in_hospital,1) AS bucket,
@@ -43,7 +74,7 @@ ORDER BY 2 desc;
 SELECT MAX(num_lab_procedures),
 AVG(num_lab_procedures),
 MIN(num_lab_procedures)
-FROM health;
+FROM patient.health;
 
 -- Average hospital stay based on num_procedures--  
 SELECT AVG(time_in_hospital) as avg_hospital_stay,
@@ -101,17 +132,29 @@ ALTER TABLE health MODIFY COLUMN num_procedures int;
 ALTER TABLE health MODIFY COLUMN num_medications int;
 ALTER TABLE health MODIFY COLUMN num_lab_procedures int;
 
--- Age Range with the highest patients by admission type
-SELECT demographics.age,
+-- Age Range with the most amount of patients by admission type
+-- SELECT demographics.age,
+--     health.admission_type_id,
+--     COUNT(*) AS num_of_patients,
+--     DENSE_RANK() OVER (PARTITION BY health.admission_type_id ORDER BY COUNT(*) DESC) as "rank"
+-- FROM patient.demographics
+-- JOIN patient.health
+-- 	on health.patient_nbr = demographics.patient_nbr
+-- GROUP BY 1, 2
+-- -- HAVING "rank" = 1 
+
+WITH temp
+	AS (
+		SELECT demographics.age,
     health.admission_type_id,
     COUNT(*) AS num_of_patients,
     DENSE_RANK() OVER (PARTITION BY health.admission_type_id ORDER BY COUNT(*) DESC) as "rank"
 FROM patient.demographics
 JOIN patient.health
 	on health.patient_nbr = demographics.patient_nbr
-GROUP BY 1, 2
--- HAVING "rank" = 1 
-
-
+GROUP BY 1, 2)
+SELECT *
+FROM temp
+WHERE "rank" = 1
 
 
